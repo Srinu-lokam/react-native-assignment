@@ -71,21 +71,34 @@ const PickupWorkflowScreen = () => {
     return STATUS_FLOW[currentIndex + 1] || null;
   };
 
-  const updateStatusWithAlert = async (statusToUpdate, successMessage, onSuccess) => {
-    setUpdating(true);
-    try {
-      const res = await axios.put(
-        `https://6868edb5d5933161d70ce3e4.mockapi.io/axios/pickups/${pickupId}`,
-        { status: statusToUpdate, items }
-      );
-      setPickup(res.data);
-      Alert.alert('Success', successMessage, [{ text: 'OK', onPress: onSuccess }]);
-    } catch (err) {
-      Alert.alert('Error', 'Failed to update status.');
-    } finally {
-      setUpdating(false);
-    }
-  };
+ const updateStatusWithAlert = async (statusToUpdate, successMessage, onSuccess) => {
+  setUpdating(true);
+  try {
+    const totalAmount = items.reduce((sum, item) => {
+      return sum + (parseFloat(item.price) || 0);
+    }, 0);
+
+    const updatedItemList = items.map(item => `${item.name} x ${item.quantity}`);
+
+    const res = await axios.put(
+      `https://6868edb5d5933161d70ce3e4.mockapi.io/axios/pickups/${pickupId}`,
+      {
+        status: statusToUpdate,
+        items,
+        itemList: updatedItemList, 
+        totalAmount,
+      }
+    );
+
+    setPickup(res.data);
+    Alert.alert('Success', successMessage, [{ text: 'OK', onPress: onSuccess }]);
+  } catch (err) {
+    Alert.alert('Error', 'Failed to update status.');
+  } finally {
+    setUpdating(false);
+  }
+};
+
 
   const handleStatusUpdate = () => {
     const newStatus = nextStatus();
@@ -97,7 +110,7 @@ const PickupWorkflowScreen = () => {
     if (newStatus === 'Accepted') {
       updateStatusWithAlert('Accepted', 'Pickup accepted.', () => setShowCodeModal(true));
     } else if (newStatus === 'In-Process') {
-      setShowCodeModal(true); 
+      setShowCodeModal(true);
     } else {
       updateStatusWithAlert(newStatus, `Status updated to "${newStatus}"`);
     }
@@ -158,7 +171,6 @@ const PickupWorkflowScreen = () => {
       </View>
     );
   }
-
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent}>

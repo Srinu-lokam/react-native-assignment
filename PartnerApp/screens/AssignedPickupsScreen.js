@@ -6,22 +6,36 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
-  Linking,
   Alert,
-  SafeAreaView,
+  TextInput,
+  RefreshControl,
 } from 'react-native';
-import axios from 'axios';
-import { AuthContext } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
+import { AuthContext } from '../contexts/AuthContext';
 
-const PRIMARY = '#FFCA40';    
-const ACCENT = '#6A5AE0';     
+const STATUSES = [
+  'All',
+  'Pending',
+  'Accepted',
+  'In-Process',
+  'Pending for Approval',
+  'Completed',
+];
+
+const PRIMARY = '#FFCA40';
+const ACCENT = '#6A5AE0';
 const BG = '#f4f4f4';
 
 const AssignedPickupsScreen = () => {
   const [pickups, setPickups] = useState([]);
+  const [filteredPickups, setFilteredPickups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+
   const { userPhone, logout } = useContext(AuthContext);
   const navigation = useNavigation();
 
@@ -29,7 +43,8 @@ const AssignedPickupsScreen = () => {
     try {
       const response = await axios.get('https://6868edb5d5933161d70ce3e4.mockapi.io/axios/pickups');
       const assigned = response.data.filter((p) => p.partnerPhone === userPhone);
-      setPickups(assigned);
+      const sorted = assigned.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setPickups(sorted);
     } catch (err) {
       console.error(err);
       Alert.alert('Error', 'Failed to load pickups.');
@@ -42,6 +57,38 @@ const AssignedPickupsScreen = () => {
     fetchAssignedPickups();
   }, []);
 
+  useEffect(() => {
+    let filtered = pickups;
+
+    if (filter !== 'All') {
+      filtered = filtered.filter((p) => p.status === filter);
+    }
+
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(
+        (p) =>
+          p.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.address.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    setFilteredPickups(filtered);
+  }, [pickups, filter, searchQuery]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchAssignedPickups();
+    setRefreshing(false);
+  };
+
+  const openMap = (url) => {
+    if (url) {
+      Linking.openURL(url);
+    } else {
+      Alert.alert('No Map Link');
+    }
+  };
+
   const getStatusColor = (status) => {
     const map = {
       Pending: '#FFA500',
@@ -53,44 +100,49 @@ const AssignedPickupsScreen = () => {
     return map[status] || '#666';
   };
 
-  const openMap = (url) => {
-    if (url) Linking.openURL(url);
-    else Alert.alert('No Map Link');
-  };
-
-  const latestPickupId = pickups.length > 0 ? pickups[0].id : null;
-
-  const handleWorkflowNavigation = () => {
-    if (latestPickupId) {
-      navigation.navigate('PickupWorkflow', { pickupId: latestPickupId });
-    } else {
-      Alert.alert('No Assigned Pickup', 'There is no pickup available to view workflow.');
-    }
-  };
-
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={{ flex: 1, backgroundColor: BG }}>
       <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}> 🚚  Assigned Pickups</Text>
-        </View>
+        <Text style={styles.headerTitle}>🚚 Assigned Pickups</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.screenTitle}></Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
+          {STATUSES.map((status) => (
+            <TouchableOpacity
+              key={status}
+              style={[styles.filterBtn, filter === status && styles.filterBtnActive]}
+              onPress={() => setFilter(status)}
+            >
+              <Text style={[styles.filterText, filter === status && styles.filterTextActive]}>
+                {status}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <TextInput
+          placeholder="Search by customer or address..."
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
 
         {loading ? (
           <ActivityIndicator size="large" color={ACCENT} />
-        ) : pickups.length === 0 ? (
-          <Text style={styles.noText}>No pickups assigned.</Text>
+        ) : filteredPickups.length === 0 ? (
+          <Text style={styles.noText}>No pickups found.</Text>
         ) : (
-          pickups.map((pickup) => (
+          filteredPickups.map((pickup) => (
             <View key={pickup.id} style={styles.card}>
               <Text style={styles.info}><Text style={styles.label}>👤 Customer:</Text> {pickup.userName}</Text>
               <Text style={styles.info}><Text style={styles.label}>📞 Phone:</Text> {pickup.userPhone}</Text>
               <Text style={styles.info}><Text style={styles.label}>📍 Address:</Text> {pickup.address}</Text>
-              <Text style={styles.info}><Text style={styles.label}>📅 Date:</Text> {pickup.pickupDate} </Text>
-              <Text style={styles.info}><Text style={styles.label}>⏰ TimeSlot:</Text> {pickup.timeSlot}</Text>
+              <Text style={styles.info}><Text style={styles.label}>📅 Date:</Text> {pickup.pickupDate}</Text>
+              <Text style={styles.info}><Text style={styles.label}>⏰ Time Slot:</Text> {pickup.timeSlot}</Text>
               <Text style={[styles.status, { color: getStatusColor(pickup.status) }]}>Status: {pickup.status}</Text>
 
               {pickup.mapLink && (
@@ -120,20 +172,18 @@ const AssignedPickupsScreen = () => {
           <Ionicons name="cube-outline" size={22} color={ACCENT} />
           <Text style={styles.tabText}>Assigned</Text>
         </TouchableOpacity>
-       
         <TouchableOpacity onPress={logout} style={styles.tabButton}>
           <Ionicons name="log-out-outline" size={22} color={ACCENT} />
           <Text style={styles.tabText}>Logout</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default AssignedPickupsScreen;
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: BG },
   header: {
     backgroundColor: '#f3ecff',
     paddingTop: 50,
@@ -143,27 +193,11 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
     elevation: 4,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  emoji: {
-    fontSize: 26,
-  },
   headerTitle: {
     paddingLeft: 50,
     fontSize: 22,
     fontWeight: '800',
     color: ACCENT,
-  },
-  screenTitle: {
-    marginBottom: -10,
-    fontSize: 20,
-    fontWeight: '700',
-    color: ACCENT,
-    textAlign: 'center',
-    marginVertical: 20,
   },
   scrollContainer: {
     paddingBottom: 120,
@@ -220,6 +254,38 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
+  filterRow: {
+    flexDirection: 'row',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  filterBtn: {
+    backgroundColor: '#e6e6e6',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  filterBtnActive: {
+    backgroundColor: ACCENT,
+  },
+  filterText: {
+    color: '#555',
+    fontWeight: '500',
+  },
+  filterTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  searchInput: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
   bottomTab: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -237,7 +303,6 @@ const styles = StyleSheet.create({
   tabButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
   },
   tabText: {
     fontSize: 12,

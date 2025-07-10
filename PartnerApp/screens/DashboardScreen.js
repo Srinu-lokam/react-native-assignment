@@ -76,10 +76,11 @@ const DashboardScreen = () => {
 
         <View style={styles.logoContainer}>
           <Animated.Image
-            source={require('../assets/logo.png')}
+            source={require('../assets/logoo.png')}
             style={[styles.logo, { transform: [{ scale: logoScale }] }]}
             resizeMode="contain"
           />
+          <Text style={styles.textx}>Your pickups await – Let's roll!</Text>
         </View>
 
         <View style={styles.bottomTab}>
@@ -108,6 +109,18 @@ const DashboardScreen = () => {
 export default DashboardScreen;
 
 const styles = StyleSheet.create({
+  textx: {
+  fontSize: 22,
+  fontWeight: '700',
+  color: COLORS.secondary,
+  marginTop: 20,
+  textAlign: 'center',
+  letterSpacing: 0.5,
+  textShadowColor: '#d6ccff',
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 2,
+},
+
   gradient: {
     flex: 1,
   },
@@ -140,9 +153,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    width: 320,
-    height: 320,
-    marginTop: 30,
+    width: 400,
+    height:450,
+    marginTop: -60,
   },
   bottomTab: {
     flexDirection: 'row',

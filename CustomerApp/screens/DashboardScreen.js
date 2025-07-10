@@ -106,10 +106,11 @@ const DashboardScreen = () => {
         >
           <View style={styles.logoContainer}>
             <Animated.Image
-              source={require('../assets/dd.png')}
+              source={require('../assets/logo.png')}
               style={[styles.logo, { transform: [{ scale: logoScale }] }]}
               resizeMode="contain"
             />
+            <Text style={styles.textx}>Fast. Easy. Reliable Pickups at Your Doorstep</Text>
           </View>
 
           <Text style={styles.sectionTitle}>📦 Recent Pickups</Text>
@@ -152,6 +153,16 @@ export default DashboardScreen;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  textx: {
+     marginTop: 5,
+  fontSize: 18,
+  fontWeight: '700',
+  color: '#FF7754', 
+  textAlign: 'center',
+  paddingHorizontal: 20,
+  fontStyle: 'italic',
+  letterSpacing: 0.5,
+  },
   header: {
     paddingTop: 50,
     paddingBottom: 20,
