@@ -56,7 +56,7 @@ const LoginScreen = () => {
       <KeyboardAvoidingView style={styles.outerContainer} behavior="padding">
         <Animated.View style={[styles.card, { transform: [{ translateX: shakeAnim }] }]}>
           <Image
-            source={require('../assets/log.jpg')}
+            source={require('../assets/log.png')}
             style={{ width: 100, height: 100, marginBottom: 12 }}
           />
           <Text style={styles.title}>Welcome to Tesukupo!</Text>

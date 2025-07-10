@@ -106,7 +106,7 @@ const DashboardScreen = () => {
         >
           <View style={styles.logoContainer}>
             <Animated.Image
-              source={require('../assets/logo.png')}
+              source={require('../assets/dd.png')}
               style={[styles.logo, { transform: [{ scale: logoScale }] }]}
               resizeMode="contain"
             />
